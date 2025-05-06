@@ -4,10 +4,8 @@ from agent import agent_executor
 st.title("👕 Hava Durumuna Göre Kıyafet Önerisi")
 st.markdown("Bugünkü havaya göre ne giymeliyim? Şehri seç, sana önerelim!")
 
-# Girdi alanı
 city = st.text_input("Şehir adını girin", placeholder="İstanbul, Ankara, İzmir...")
 
-# Buton ve işlem
 if st.button("Öner"):
     if not city:
         st.warning("Lütfen bir şehir adı girin.")
