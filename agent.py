@@ -126,7 +126,6 @@ def recommend_clothing(weather_info: str) -> str:
     return "Recommended clothing:\n- " + "\n- ".join(set(recommendations))  # Using set to remove duplicates
 
 
-from langchain_core.prompts import ChatPromptTemplate
 
 prompt = ChatPromptTemplate.from_template(
     """You are a clothing recommendation assistant. Based on current weather information, you help users decide what to wear.
