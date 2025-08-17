@@ -6,13 +6,17 @@ from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 import re
 from langchain.prompts import ChatPromptTemplate
+
+# Load environment variables from .env
 load_dotenv()
 
+# Get the Weather API key from environment variables
 WEATHERAPI_KEY = os.getenv("WEATHERAPI_KEY")
+
 
 @tool
 def get_weather(location: str) -> str:
-    """Get the current weather for a location."""
+    """Fetch the current weather for a given location using WeatherAPI."""
     url = f"http://api.weatherapi.com/v1/current.json?key={WEATHERAPI_KEY}&q={location}&aqi=no"
     response = requests.get(url)
     if response.status_code != 200:
@@ -25,13 +29,17 @@ def get_weather(location: str) -> str:
     humidity = data["current"]["humidity"]
     wind_speed = data["current"]["wind_kph"]
     
-    return f"Current weather in {location}: {weather_description}. Temperature: {temperature}°C (feels like {feels_like}°C). Humidity: {humidity}%. Wind speed: {wind_speed} km/h."
+    return (
+        f"Current weather in {location}: {weather_description}. "
+        f"Temperature: {temperature}°C (feels like {feels_like}°C). "
+        f"Humidity: {humidity}%. Wind speed: {wind_speed} km/h."
+    )
 
 
 @tool
 def recommend_clothing(weather_info: str) -> str:
-    """Recommend clothing based on weather description. Input should be the output from get_weather."""
-    # Parse temperature from the weather info string
+    """Recommend clothing based on parsed weather information."""
+    # Extract temperature from the weather string
     temp_match = re.search(r'Temperature: ([\d.]+)°C', weather_info)
     if not temp_match:
         return "Could not determine temperature from weather information."
@@ -39,23 +47,23 @@ def recommend_clothing(weather_info: str) -> str:
     temperature = float(temp_match.group(1))
     weather_description = weather_info.lower()
     
-    # Define temperature ranges
+    # Define temperature categories
     cold = temperature < 10
     cool = 10 <= temperature < 18
     mild = 18 <= temperature < 24
     warm = 24 <= temperature < 30
     hot = temperature >= 30
     
-    # Check weather conditions
+    # Detect special conditions
     rainy = any(x in weather_description for x in ["rain", "drizzle", "shower"])
     snowy = any(x in weather_description for x in ["snow", "sleet", "hail"])
     windy = "wind" in weather_description
     sunny = any(x in weather_description for x in ["sun", "clear", "sunny"])
     
-    # Base recommendations
+    # Start building clothing recommendations
     recommendations = []
     
-    # Temperature-based recommendations
+    # Add temperature-based clothing
     if cold:
         recommendations.extend([
             "Heavy coat or down jacket",
@@ -98,10 +106,10 @@ def recommend_clothing(weather_info: str) -> str:
             "Sandals",
             "Sunglasses",
             "Sun hat",
-            "Consider light, breathable fabrics like cotton or linen"
+            "Breathable fabrics (cotton, linen)"
         ])
     
-    # Weather condition adjustments
+    # Adjust for special conditions
     if rainy:
         recommendations.extend([
             "Raincoat or waterproof jacket",
@@ -123,16 +131,16 @@ def recommend_clothing(weather_info: str) -> str:
             "Hat for sun protection"
         ])
     
-    return "Recommended clothing:\n- " + "\n- ".join(set(recommendations))  # Using set to remove duplicates
+    return "Recommended clothing:\n- " + "\n- ".join(set(recommendations))  # Remove duplicates
 
 
-
+# Prompt template for the ReAct agent
 prompt = ChatPromptTemplate.from_template(
     """You are a clothing recommendation assistant. Based on current weather information, you help users decide what to wear.
-Always respond **only in Turkish**, in a warm and user-friendly tone.
+Always respond **only in English**, in a warm and user-friendly tone.
 
 Your response should:
-- Include a short weather summary (e.g. "İstanbul’da hava güneşli ve 24°C.")
+- Include a short weather summary (e.g. "The weather is sunny in Istanbul and 24°C.")
 - Suggest appropriate clothing items clearly
 - Be written as a full, natural sentence, not a list
 
@@ -148,7 +156,7 @@ Action Input: the input to the action
 Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation cycle can repeat N times)
 Thought: I now know the final answer
-Final Answer: your final answer to the original question (must be in Turkish and user-friendly)
+Final Answer: your final answer to the original question (must be in English and user-friendly)
 
 Begin!
 
@@ -156,24 +164,23 @@ Question: {input}
 {agent_scratchpad}"""
 )
 
-# Set up ChatOpenAI model
+# Initialize ChatOpenAI model
 llm = ChatOpenAI(model="gpt-4", temperature=0)
 
-# Define the tools (functions)
+# Define available tools for the agent
 tools = [get_weather, recommend_clothing]
 
-# Initialize the agent with the prompt
+# Create the ReAct agent with tools and prompt
 agent = create_react_agent(
     llm=llm,
     tools=tools,
     prompt=prompt
 )
 
-# Set up the agent executor
+# Create an executor that runs the agent with the defined tools
 agent_executor = AgentExecutor(
     agent=agent,
     tools=tools,
     verbose=True,
     handle_parsing_errors=True
 )
-
