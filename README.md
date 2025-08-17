@@ -10,6 +10,12 @@ An AI-powered web application that provides personalized clothing recommendation
 - Supports any city worldwide
 - Considers temperature, weather conditions, and special factors (rain, wind, etc.)
 
+## 🎬 Demo
+
+![Demo Video](./demo.gif)
+
+*Click to watch how the outfit recommendation system works*
+
 ## Installation
 
 1. **Clone and install dependencies:**
